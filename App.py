@@ -80,10 +80,9 @@ if uploaded_file is not None:
                     canvas = np.zeros((target_h, target_w, 3), dtype=np.uint8)
                     x_offset = (target_w - final_w) // 2
                     y_offset = (target_h - final_h) // 2
-                    canvas[y_offset:y_offset+final_h, x_offset:x_offset+final_h] = enhanced_frame # Fixed array slice indexing
                     
-                    # Correct slicing assignment safely:
-                    canvas[y_offset:y_offset+final_h, x_offset:x_offset+final_w] = enhanced_frame
+                    # Perfectly match dimensions to prevent broadcasting shape errors
+                    canvas[y_offset:y_offset+final_h, x_offset:x_offset+final_w] = enhanced_frame[:final_h, :final_w]
                     
                     out.write(canvas)
                 
