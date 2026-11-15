@@ -8,7 +8,7 @@ import numpy as np
 st.set_page_config(page_title="Personal Video Enhancer", page_icon="🎬", layout="centered")
 
 st.title("🎬 சொந்த பயன்பாட்டு Video Enhancer")
-st.write("உங்கள் வீடியோக்களின் தரத்தைத் (Resolution) தேர்ந்தெடுத்து எளிதாகத் தெளிவுபடுத்துங்கள்!")
+st.write("வீடியோக்களில் உள்ள கட்டத் தன்மையைத் தவிர்த்து, தெளிவாக மாற்றும் முறை!")
 
 # Step 1: Resolution Selection Option
 st.subheader("⚙️ வீடியோ தரத்தைத் தேர்வு செய்யவும் (Resolution Selection)")
@@ -17,7 +17,6 @@ resolution_choice = st.selectbox(
     ["HD (720p)", "Full HD (1080p)", "2K", "4K"]
 )
 
-# Resolution dimensions mapping
 resolution_dims = {
     "HD (720p)": (1280, 720),
     "Full HD (1080p)": (1920, 1080),
@@ -38,38 +37,53 @@ if uploaded_file is not None:
         
         with st.spinner(f"வீடியோ {resolution_choice} தரத்திற்கு மாற்றப்பட்டு வருகிறது... சிறிது நேரம் காத்திருக்கவும்..."):
             try:
-                # Save input video locally
                 input_path = "input_video.mp4"
                 output_path = "enhanced_video.mp4"
                 
                 with open(input_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
                 
-                # Open video using OpenCV
                 cap = cv2.VideoCapture(input_path)
                 fps = cap.get(cv2.CAP_PROP_FPS)
                 if fps == 0 or np.isnan(fps):
                     fps = 30.0
                 
-                # Target width and height based on user choice
-                target_width, target_height = resolution_dims[resolution_choice]
+                orig_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                orig_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                 
-                # Setup video writer with mp4v codec
+                target_w, target_h = resolution_dims[resolution_choice]
+                
+                # Maintain aspect ratio (16:9) correctly
+                orig_aspect = orig_width / orig_height
+                target_aspect = target_w / target_h
+                
+                if orig_aspect > target_aspect:
+                    final_w = target_w
+                    final_h = int(target_w / orig_aspect)
+                else:
+                    final_h = target_h
+                    final_w = int(target_h * orig_aspect)
+                
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                out = cv2.VideoWriter(output_path, fourcc, fps, (target_width, target_height))
-                
-                # Process frames (Resize to chosen resolution + Sharpening filter)
-                kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+                out = cv2.VideoWriter(output_path, fourcc, fps, (target_w, target_h))
                 
                 while cap.isOpened():
                     ret, frame = cap.read()
                     if not ret:
                         break
-                    # Resize frame to target resolution
-                    resized_frame = cv2.resize(frame, (target_width, target_height), interpolation=cv2.INTER_CUBIC)
-                    # Apply sharpening filter
-                    enhanced_frame = cv2.filter2D(resized_frame, -1, kernel)
-                    out.write(enhanced_frame)
+                    
+                    # Use LANCZOS4 for high-quality resizing to avoid blockiness
+                    resized = cv2.resize(frame, (final_w, final_h), interpolation=cv2.INTER_LANCZOS4)
+                    
+                    # Apply gentle smoothing to remove pixel blocks / noise
+                    smoothed = cv2.GaussianBlur(resized, (3, 3), 0)
+                    
+                    canvas = np.zeros((target_h, target_w, 3), dtype=np.uint8)
+                    x_offset = (target_w - final_w) // 2
+                    y_offset = (target_h - final_h) // 2
+                    canvas[y_offset:y_offset+final_h, x_offset:x_offset+final_w] = smoothed
+                    
+                    out.write(canvas)
                 
                 cap.release()
                 out.release()
@@ -82,13 +96,11 @@ if uploaded_file is not None:
                 if os.path.exists(output_path):
                     st.success(f"🎉 வீடியோ வெற்றிகரமாக {resolution_choice} தரத்திற்கு மாற்றப்பட்டது! (எடுத்துக்கொண்ட நேரம்: {minutes} நிமிடம் {seconds} வினாடிகள்)")
                     
-                    # Show enhanced video
                     st.subheader("தெளிவுபடுத்தப்பட்ட வீடியோ (Enhanced Video):")
                     with open(output_path, "rb") as video_file:
                         video_bytes = video_file.read()
                         st.video(video_bytes)
                         
-                        # Download button
                         st.download_button(
                             label="📥 வீடியோவை டவுன்லோட் செய்ய இங்கே கிளிக் செய்யவும்",
                             data=video_bytes,
