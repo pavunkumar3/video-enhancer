@@ -29,5 +29,26 @@ if api_key:
                     with open(temp_file_path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
                     
-                    # Run AI Video Upscaler Model (Real-ESRGAN Video)
-                    with
+                    # Run AI Video Upscaler Model
+                    with open(temp_file_path, "rb") as video_file:
+                        output = replicate.run(
+                            "lucataco/real-esrgan-video:1df7b374944d13c726a319f39a67a840c83ef29302ca214d026330058b8723c3",
+                            input={"video": video_file}
+                        )
+                    
+                    st.success("வீடியோ வெற்றிகரமாக என்ஹான்ஸ் செய்யப்பட்டது! 🎉")
+                    
+                    # Show output video
+                    st.subheader("தெளிவுபடுத்தப்பட்ட வீடியோ (Enhanced Video):")
+                    st.video(output)
+                    
+                    # Download Link
+                    st.markdown(f"### [📥 டவுன்லோட் செய்ய இங்கே கிளிக் செய்யவும்]({output})")
+                    
+                except Exception as e:
+                    st.error(f"ஒரு பிழை ஏற்பட்டுள்ளது: {e}")
+                finally:
+                    if os.path.exists("temp_input_video.mp4"):
+                        os.remove("temp_input_video.mp4")
+else:
+    st.info("💡 தொடங்குவதற்கு உங்கள் Replicate API Key-ஐ மேலே உள்ள கட்டத்தில் உள்ளிடவும்.")
