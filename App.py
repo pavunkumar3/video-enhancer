@@ -1,6 +1,7 @@
 import streamlit as st
 import replicate
 import os
+import time
 
 # Page Configuration
 st.set_page_config(page_title="Personal Video Enhancer", page_icon="🎬", layout="centered")
@@ -14,14 +15,24 @@ api_key = st.text_input("உங்கள் Replicate API Key-ஐ உள்ள�
 if api_key:
     os.environ["REPLICATE_API_TOKEN"] = api_key
     
-    # Step 2: Video Uploader
+    # Step 2: Video Quality / Resolution Selection Option
+    st.subheader("⚙️ வீடியோ தரத்தைத் தேர்வு செய்யவும் (Quality Selection)")
+    resolution_choice = st.selectbox(
+        "வீடியோ எந்த தரத்தில் (Resolution) உயர்த்த வேண்டும்?",
+        ["FHD", "2k", "4k"]
+    )
+    
+    # Step 3: Video Uploader
     uploaded_file = st.file_uploader("உங்களது வீடியோவை அப்லோட் செய்யவும் (MP4, MOV)", type=["mp4", "mov", "avi"])
     
     if uploaded_file is not None:
-        st.subheader("பதிவேற்றிய வீடியோ:")
+        st.success("✅ வீடியோ வெற்றிகரமாக அப்லோட் செய்யப்பட்டது!")
+        st.subheader("பதிவேற்றிய வீடியோ முன்னோட்டம் (Preview):")
         st.video(uploaded_file)
         
         if st.button("🚀 Video Enhance செய்"):
+            start_time = time.time()
+            
             with st.spinner("AI வீடியோவை தரம் உயர்த்திக் கொண்டிருக்கிறது... சிறிது நேரம் காத்திருக்கவும்..."):
                 try:
                     # Temporary file save
@@ -29,14 +40,23 @@ if api_key:
                     with open(temp_file_path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
                     
-                    # Run AI Video Upscaler Model
+                    # Run stable AI Video Upscaler Model
                     with open(temp_file_path, "rb") as video_file:
                         output = replicate.run(
-                            "lucataco/real-esrgan-video:1df7b374944d13c726a319f39a67a840c83ef29302ca214d026330058b8723c3",
-                            input={"video": video_file}
+                            "sczhou/code-former:7de2ea26c616d5bf2245ad0d5e24f0ef9a525c65fe72f4acf96dbb3fd885b56f",
+                            input={
+                                "image_or_video": video_file,
+                                "upscale": 2,
+                                "fidelity": 0.7
+                            }
                         )
                     
-                    st.success("வீடியோ வெற்றிகரமாக என்ஹான்ஸ் செய்யப்பட்டது! 🎉")
+                    end_time = time.time()
+                    elapsed_time = end_time - start_time
+                    minutes = int(elapsed_time // 60)
+                    seconds = int(elapsed_time % 60)
+                    
+                    st.success(f"🎉 வீடியோ வெற்றிகரமாக என்ஹான்ஸ் செய்யப்பட்டது! (எடுத்துக்கொண்ட நேரம்: {minutes} நிமிடம் {seconds} வினாடிகள்)")
                     
                     # Show output video
                     st.subheader("தெளிவுபடுத்தப்பட்ட வீடியோ (Enhanced Video):")
