@@ -40,14 +40,12 @@ if api_key:
                     with open(temp_file_path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
                     
-                    # Run stable AI Video Upscaler Model
+                    # Run AI Video Upscaler Model (Using direct model name without version hash)
                     with open(temp_file_path, "rb") as video_file:
                         output = replicate.run(
-                            "sczhou/code-former:7de2ea26c616d5bf2245ad0d5e24f0ef9a525c65fe72f4acf96dbb3fd885b56f",
+                            "lucataco/real-esrgan-video",
                             input={
-                                "image_or_video": video_file,
-                                "upscale": 2,
-                                "fidelity": 0.7
+                                "video": video_file
                             }
                         )
                     
