@@ -8,7 +8,7 @@ import numpy as np
 st.set_page_config(page_title="Personal Video Enhancer", page_icon="🎬", layout="centered")
 
 st.title("🎬 சொந்த பயன்பாட்டு Video Enhancer")
-st.write("வீடியோக்களில் உள்ள கட்டத் தன்மையைத் தவிர்த்து, தெளிவாக மாற்றும் முறை!")
+st.write("வீடியோக்களின் தரத்தை உயர்த்தித் தெளிவாக மாற்றும் மேம்பட்ட முறை!")
 
 # Step 1: Resolution Selection Option
 st.subheader("⚙️ வீடியோ தரத்தைத் தேர்வு செய்யவும் (Resolution Selection)")
@@ -67,21 +67,27 @@ if uploaded_file is not None:
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
                 out = cv2.VideoWriter(output_path, fourcc, fps, (target_w, target_h))
                 
+                # Stronger sharpening kernel to make the difference clearly visible
+                kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+                
                 while cap.isOpened():
                     ret, frame = cap.read()
                     if not ret:
                         break
                     
-                    # Use LANCZOS4 for high-quality resizing to avoid blockiness
-                    resized = cv2.resize(frame, (final_w, final_h), interpolation=cv2.INTER_LANCZOS4)
+                    # High quality resize
+                    resized = cv2.resize(frame, (final_w, final_h), interpolation=cv2.INTER_CUBIC)
                     
-                    # Apply gentle smoothing to remove pixel blocks / noise
-                    smoothed = cv2.GaussianBlur(resized, (3, 3), 0)
+                    # Apply strong sharpening filter
+                    sharpened = cv2.filter2D(resized, -1, kernel)
+                    
+                    # Optional: Boost contrast slightly for more clarity
+                    enhanced_frame = cv2.convertScaleAbs(sharpened, alpha=1.1, beta=5)
                     
                     canvas = np.zeros((target_h, target_w, 3), dtype=np.uint8)
                     x_offset = (target_w - final_w) // 2
                     y_offset = (target_h - final_h) // 2
-                    canvas[y_offset:y_offset+final_h, x_offset:x_offset+final_w] = smoothed
+                    canvas[y_offset:y_offset+final_h, x_offset:x_offset+final_w] = enhanced_frame
                     
                     out.write(canvas)
                 
@@ -111,7 +117,7 @@ if uploaded_file is not None:
                     st.error("பிழை: என்ஹான்ஸ் செய்யப்பட்ட வீடியோ ஃபைல் உருவாக்கப்படவில்லை.")
                 
             except Exception as e:
-                st.error(f"ஒரு பிழை ஏற்பட்டுள்ளது: {e}")
+                st.error(f0"ஒரு பிழை ஏற்பட்டுள்ளது: {e}")
             finally:
                 if os.path.exists("input_video.mp4"):
                     os.remove("input_video.mp4")
