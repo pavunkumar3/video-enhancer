@@ -117,7 +117,7 @@ if uploaded_file is not None:
                     st.error("பிழை: என்ஹான்ஸ் செய்யப்பட்ட வீடியோ ஃபைல் உருவாக்கப்படவில்லை.")
                 
             except Exception as e:
-                st.error(f0"ஒரு பிழை ஏற்பட்டுள்ளது: {e}")
+                st.error(f"ஒரு பிழை ஏற்பட்டுள்ளது: {e}")
             finally:
                 if os.path.exists("input_video.mp4"):
                     os.remove("input_video.mp4")
